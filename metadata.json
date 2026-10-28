@@ -1,0 +1,6 @@
+{
+  "name": "الطيب الأصلي للعطور الفاخرة | نواكشوط",
+  "description": "الطيب الأصلي للعطور الفاخرة في نواكشوط، موريتانيا. تصفّح العطور الرجالية والنسائية واطلب عبر واتساب.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

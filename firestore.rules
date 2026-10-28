@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // المسؤول = مستخدم مسجل في adminUsers أو البريد الإلكتروني للمسؤول المعتمد
+    function isAdmin() {
+      return request.auth != null && (
+        exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid)) ||
+        (request.auth.token.email == 'medsaleh2217@gmail.com' && request.auth.token.email_verified == true)
+      );
+    }
+
+    function validProduct(d) {
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 150
+        && d.price is number && d.price >= 0
+        && (!('oldPrice' in d) || d.oldPrice == null || (d.oldPrice is number && d.oldPrice >= 0))
+        && d.hidden is bool
+        && d.images is list && d.images.size() <= 6
+        && d.categoryId is string;
+    }
+
+    function validOrder(d) {
+      return d.keys().hasOnly(['ref','customerName','phone','city','address','notes','method','zone',
+                               'deliveryFee','items','subtotal','total','status','channel','createdAt','lang'])
+        && d.customerName is string && d.customerName.size() > 0 && d.customerName.size() <= 100
+        && d.phone is string && d.phone.size() >= 6 && d.phone.size() <= 30
+        && d.city is string && d.city.size() <= 100
+        && d.items is list && d.items.size() > 0 && d.items.size() <= 30
+        && d.status == 'new'
+        && d.subtotal is number && d.subtotal >= 0
+        && d.total is number && d.total >= 0
+        && d.createdAt is number
+        && (!('notes' in d) || (d.notes is string && d.notes.size() <= 500))
+        && (!('address' in d) || (d.address is string && d.address.size() <= 300));
+    }
+
+    // الزائر يرى المنتجات الظاهرة فقط. المسؤول يرى الجميع.
+    match /products/{id} {
+      allow read: if resource.data.hidden == false || isAdmin();
+      allow create, update: if isAdmin() && validProduct(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /categories/{id} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 80;
+      allow delete: if isAdmin();
+    }
+
+    match /settings/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // الزائر يستطيع إنشاء طلب فقط (بحالة "new")، ولا يستطيع قراءة أي طلب.
+    match /orders/{id} {
+      allow create: if validOrder(request.resource.data);
+      allow read, update, delete: if isAdmin();
+    }
+
+    // يستطيع المستخدم قراءة مستنده للتحقق من صلاحيته أو المسؤول
+    match /adminUsers/{uid} {
+      allow get: if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow list, write: if isAdmin();
+    }
+  }
+}

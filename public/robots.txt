@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+
+# يتم تحديث هذا السطر تلقائيًا عند تشغيل: npm run build (إذا ضُبط VITE_SITE_URL)

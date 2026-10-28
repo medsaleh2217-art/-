@@ -1,0 +1,105 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Perfume product in the store",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Perfume name in Arabic", "maxLength": 150 },
+        "nameFr": { "type": "string", "description": "Perfume name in French", "maxLength": 150 },
+        "description": { "type": "string", "description": "Description in Arabic", "maxLength": 1000 },
+        "descriptionFr": { "type": "string", "description": "Description in French", "maxLength": 1000 },
+        "price": { "type": "number", "description": "Current price in MRU" },
+        "oldPrice": { "type": "number", "description": "Price before discount" },
+        "categoryId": { "type": "string", "description": "Category identifier" },
+        "sizeMl": { "type": "number", "description": "Bottle size in ml" },
+        "stock": { "type": "number", "description": "Available stock quantity" },
+        "images": { "type": "array", "description": "Image URLs or base64 thumbnails" },
+        "featured": { "type": "boolean", "description": "Featured on home page" },
+        "isNew": { "type": "boolean", "description": "New release badge" },
+        "hidden": { "type": "boolean", "description": "Hidden from storefront" },
+        "createdAt": { "type": "number", "description": "Timestamp created" }
+      },
+      "required": ["name", "price", "categoryId", "hidden"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Perfume classification category",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Category name in Arabic", "maxLength": 80 },
+        "nameFr": { "type": "string", "description": "Category name in French", "maxLength": 80 },
+        "order": { "type": "number", "description": "Display order" },
+        "image": { "type": "string", "description": "Category banner or icon image" }
+      },
+      "required": ["name"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase order submitted for confirmation",
+      "type": "object",
+      "properties": {
+        "ref": { "type": "string", "description": "Order reference code (e.g. TY-XXXXX)" },
+        "customerName": { "type": "string", "description": "Customer full name", "maxLength": 100 },
+        "phone": { "type": "string", "description": "Customer phone number", "maxLength": 30 },
+        "city": { "type": "string", "description": "Customer city or neighborhood", "maxLength": 100 },
+        "address": { "type": "string", "description": "Delivery address", "maxLength": 300 },
+        "notes": { "type": "string", "description": "Order notes", "maxLength": 500 },
+        "method": { "type": "string", "enum": ["pickup", "delivery"] },
+        "zone": { "type": "string", "description": "Delivery zone name" },
+        "deliveryFee": { "type": "number", "description": "Delivery cost in MRU" },
+        "items": { "type": "array", "description": "List of ordered perfumes and quantities" },
+        "subtotal": { "type": "number", "description": "Subtotal in MRU" },
+        "total": { "type": "number", "description": "Total amount in MRU" },
+        "status": { "type": "string", "enum": ["new", "pending", "confirmed", "preparing", "done", "cancelled"] },
+        "channel": { "type": "string", "enum": ["whatsapp", "site"] },
+        "lang": { "type": "string", "enum": ["ar", "fr"] },
+        "createdAt": { "type": "number", "description": "Creation timestamp" }
+      },
+      "required": ["ref", "customerName", "phone", "city", "items", "subtotal", "total", "status"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Store configuration and content settings",
+      "type": "object",
+      "properties": {
+        "storeName": { "type": "string", "description": "Store display name" },
+        "tagline": { "type": "string", "description": "Store tagline" },
+        "logoUrl": { "type": "string", "description": "Logo URL" },
+        "phones": { "type": "array", "description": "Contact phone numbers" },
+        "whatsappNumber": { "type": "string", "description": "WhatsApp business number" },
+        "currency": { "type": "string", "description": "Store currency (e.g. MRU)" }
+      }
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Administrator account role document",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "description": "Admin role identifier" }
+      }
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "Product" },
+      "description": "Perfume catalogue collection"
+    },
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "Category" },
+      "description": "Perfume categories collection"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "Order" },
+      "description": "Store orders submitted by customers"
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "Settings" },
+      "description": "Store metadata, branding, and policy configuration"
+    },
+    "/adminUsers/{userId}": {
+      "schema": { "$ref": "AdminUser" },
+      "description": "Authorized store administrator accounts"
+    }
+  }
+}
