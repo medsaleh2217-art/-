@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import Bottle from '../components/Bottle';
 import Icon from '../components/Icon';
@@ -38,14 +38,24 @@ export default function CartPage() {
 
   useSeo({ title: `${t('cart.title')} | ${lang === 'fr' ? settings.storeNameFr : settings.storeName}`, noindex: true });
 
-  const deliveryAvailable = settings.deliveryEnabled && settings.deliveryZones.length > 0;
-  const pickupAvailable = settings.pickupEnabled || !deliveryAvailable;
-  const zone = settings.deliveryZones.find((z) => z.name === zoneName);
+  const deliveryAvailable = Boolean(settings.deliveryEnabled);
+  const pickupAvailable = Boolean(settings.pickupEnabled) || !deliveryAvailable;
+  const hasZones = Boolean(settings.deliveryZones && settings.deliveryZones.length > 0);
+  const zone = hasZones ? settings.deliveryZones.find((z) => z.name === zoneName) : undefined;
   const fee = method === 'delivery' && zone ? zone.fee : 0;
   const total = subtotal + fee;
   const valid = useMemo(() => lines.filter((l) => l.product && l.available), [lines]);
   const cur = settings.currency;
   const noChannel = !wa.enabled && !configured;
+
+  // مزامنة الطريقة المحددة مع المتاح
+  useEffect(() => {
+    if (!pickupAvailable && deliveryAvailable && method === 'pickup') {
+      setMethod('delivery');
+    } else if (!deliveryAvailable && pickupAvailable && method === 'delivery') {
+      setMethod('pickup');
+    }
+  }, [deliveryAvailable, pickupAvailable, method]);
 
   const buildDraft = (channel: 'whatsapp' | 'site'): Omit<Order, 'id'> => ({
     ref: makeRef(),
@@ -74,9 +84,17 @@ export default function CartPage() {
   const submit = async (e: FormEvent | null, channel: 'whatsapp' | 'site') => {
     e?.preventDefault();
     setError('');
-    if (valid.length === 0) return;
-    if (!name.trim() || !city.trim() || digitsOnly(phone).length < 6) return setError(t('cart.requiredError'));
-    if (method === 'delivery' && (!zone || !address.trim())) return setError(t('cart.zoneError'));
+    if (!name.trim() || !city.trim() || digitsOnly(phone).length < 6) {
+      return setError(t('cart.requiredError'));
+    }
+    if (method === 'delivery') {
+      if (!address.trim()) {
+        return setError(lang === 'fr' ? 'Veuillez saisir une adresse de livraison.' : 'يُرجى إدخال عنوان التوصيل.');
+      }
+      if (hasZones && !zone) {
+        return setError(t('cart.zoneError'));
+      }
+    }
 
     setBusy(true);
     try {
@@ -221,35 +239,75 @@ export default function CartPage() {
 
           <fieldset className="field">
             <legend>{t('cart.method')}</legend>
-            {pickupAvailable && (
-              <label className="check">
-                <input type="radio" name="method" checked={method === 'pickup'} onChange={() => setMethod('pickup')} /> {t('cart.pickup')}
-              </label>
-            )}
-            {deliveryAvailable && (
-              <label className="check">
-                <input type="radio" name="method" checked={method === 'delivery'} onChange={() => setMethod('delivery')} /> {t('cart.deliveryOpt')}
-              </label>
-            )}
-            {!deliveryAvailable && <p className="muted small">{t('cart.noDeliveryNote')}</p>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+              {deliveryAvailable && (
+                <label className="check" style={{ cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="method"
+                    checked={method === 'delivery'}
+                    onChange={() => setMethod('delivery')}
+                  />
+                  <span>
+                    <strong>{t('cart.deliveryOpt')}</strong>
+                    <span className="muted small" style={{ display: 'block' }}>
+                      {hasZones
+                        ? (lang === 'fr' ? 'Livraison selon la zone' : 'توصيل للعنوان حسب المنطقة')
+                        : (lang === 'fr' ? 'Livraison directe à votre adresse' : 'توصيل مباشر إلى عنوانك وموقعك')}
+                    </span>
+                  </span>
+                </label>
+              )}
+              {pickupAvailable && (
+                <label className="check" style={{ cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="method"
+                    checked={method === 'pickup'}
+                    onChange={() => setMethod('pickup')}
+                  />
+                  <span>
+                    <strong>{t('cart.pickup')}</strong>
+                    <span className="muted small" style={{ display: 'block' }}>
+                      {lang === 'fr' ? 'Retrait direct en boutique' : 'استلام مباشر من مقر المتجر'}
+                    </span>
+                  </span>
+                </label>
+              )}
+            </div>
+            {!deliveryAvailable && <p className="muted small" style={{ marginTop: 8 }}>{t('cart.noDeliveryNote')}</p>}
           </fieldset>
 
           {method === 'delivery' && deliveryAvailable && (
             <>
-              <label className="field">
-                <span>{t('cart.zone')} *</span>
-                <select className="input" value={zoneName} onChange={(e) => setZoneName(e.target.value)}>
-                  <option value="">{t('cart.zoneSelect')}</option>
-                  {settings.deliveryZones.map((z) => (
-                    <option key={z.name} value={z.name}>
-                      {lang === 'fr' && z.nameFr ? z.nameFr : z.name} — {formatPrice(z.fee, cur)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {hasZones && (
+                <label className="field">
+                  <span>{t('cart.zone')} *</span>
+                  <select
+                    className="input"
+                    value={zoneName}
+                    onChange={(e) => setZoneName(e.target.value)}
+                    required
+                  >
+                    <option value="">{t('cart.zoneSelect')}</option>
+                    {settings.deliveryZones.map((z) => (
+                      <option key={z.name} value={z.name}>
+                        {lang === 'fr' && z.nameFr ? z.nameFr : z.name} — {formatPrice(z.fee, cur)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <label className="field">
                 <span>{t('cart.address')} *</span>
-                <input className="input" value={address} onChange={(e) => setAddress(e.target.value)} maxLength={300} />
+                <input
+                  className="input"
+                  placeholder={lang === 'fr' ? 'Ex: Quartier, Rue, près de...' : 'مثال: المقاطعة / الحي، الشارع، قرب...'}
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  maxLength={300}
+                  required
+                />
               </label>
             </>
           )}

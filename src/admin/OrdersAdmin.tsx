@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
+import { deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useI18n, type TKey } from '../i18n';
 import { useToast } from '../state/toast';
@@ -45,6 +45,23 @@ export default function OrdersAdmin() {
     try {
       await updateDoc(doc(db, 'orders', id), { status: next });
       toast.show(t('admin.saved'));
+    } catch (err) {
+      console.error(err);
+      toast.show(t('admin.saveFailed'), 'error');
+    }
+  };
+
+  const deleteOrder = async (id: string, ref: string) => {
+    if (!db) return;
+    const confirmMsg =
+      lang === 'fr'
+        ? `Êtes-vous sûr de vouloir supprimer définitivement la commande ${ref} ?`
+        : `هل أنت متأكد من حذف الطلب ${ref} نهائياً؟`;
+    if (!window.confirm(confirmMsg)) return;
+    try {
+      await deleteDoc(doc(db, 'orders', id));
+      toast.show(lang === 'fr' ? 'Commande supprimée avec succès' : 'تم حذف الطلب بنجاح');
+      if (openId === id) setOpenId(null);
     } catch (err) {
       console.error(err);
       toast.show(t('admin.saveFailed'), 'error');
@@ -124,9 +141,19 @@ export default function OrdersAdmin() {
                     </select>
                   </td>
                   <td>
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpenId(o.id)}>
-                      {t('admin.orders.details')}
-                    </button>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpenId(o.id)}>
+                        {t('admin.orders.details')}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        title={lang === 'fr' ? 'Supprimer' : 'حذف الطلب'}
+                        onClick={() => deleteOrder(o.id, o.ref)}
+                      >
+                        {t('common.delete')}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -223,6 +250,13 @@ export default function OrdersAdmin() {
                 </option>
               ))}
             </select>
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={() => deleteOrder(open.id, open.ref)}
+            >
+              {lang === 'fr' ? 'Supprimer la commande' : 'حذف الطلب'}
+            </button>
           </div>
         </Modal>
       )}

@@ -14,7 +14,8 @@ const cfg = {
   appId: firebaseConfig.appId || env.VITE_FIREBASE_APP_ID,
 };
 
-export const databaseId = firebaseConfig.firestoreDatabaseId || '(default)';
+export const databaseId =
+  firebaseConfig.firestoreDatabaseId || env.VITE_FIREBASE_DATABASE_ID || '(default)';
 
 export const firebaseConfigured = Boolean(
   cfg.apiKey &&

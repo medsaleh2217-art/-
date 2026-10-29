@@ -9,7 +9,7 @@ import ImageField from './ImageField';
 import { AreaField, CheckField, TextField } from './ui';
 
 export default function SettingsAdmin() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const toast = useToast();
   const [s, setS] = useState<Settings | null>(null);
   const [phonesText, setPhonesText] = useState('');
@@ -103,6 +103,13 @@ export default function SettingsAdmin() {
         <h2>{t('admin.settings.delivery')}</h2>
         <CheckField label={t('admin.settings.pickup')} checked={s.pickupEnabled} onChange={(v) => up('pickupEnabled', v)} />
         <CheckField label={t('admin.settings.deliveryOn')} checked={s.deliveryEnabled} onChange={(v) => up('deliveryEnabled', v)} />
+        {s.deliveryEnabled && (
+          <p className="notice notice-ok" style={{ margin: '10px 0' }}>
+            {lang === 'fr'
+              ? 'La livraison est active pour les clients. Vous pouvez définir des zones et frais ci-dessous, ou laisser vide pour livrer directement à l’adresse indiquée.'
+              : 'خدمة التوصيل مفعّلة الآن للزبائن. يمكنك تخصيص مناطق وأسعار محددة أدناه، أو تركها فارغة ليكون التوصيل لعنوان العميل مباشرة.'}
+          </p>
+        )}
         <div className="form-grid">
           {A('deliveryPolicy', 'admin.settings.deliveryPolicy', 3)}
           {A('deliveryPolicyFr', 'admin.settings.deliveryPolicyFr', 3)}
@@ -118,9 +125,25 @@ export default function SettingsAdmin() {
             </button>
           </div>
         ))}
-        <button type="button" className="btn btn-outline btn-sm" onClick={() => up('deliveryZones', [...zones, { name: '', nameFr: '', fee: 0 }])}>
-          + {t('admin.settings.addZone')}
-        </button>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
+          <button type="button" className="btn btn-outline btn-sm" onClick={() => up('deliveryZones', [...zones, { name: '', nameFr: '', fee: 0 }])}>
+            + {t('admin.settings.addZone')}
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() =>
+              up('deliveryZones', [
+                ...zones,
+                { name: 'نواكشوط (تفرغ زينة / لكصر)', nameFr: 'Nouakchott (Tevragh Zeina / Ksar)', fee: 100 },
+                { name: 'نواكشوط (عرفات / الميناء / الرياض / السبخة)', nameFr: 'Nouakchott (Arafat / El Mina / Riyad / Sebkha)', fee: 100 },
+                { name: 'نواكشوط (تيارت / دار النعيم / توجنين)', nameFr: 'Nouakchott (Teyarett / Dar Naim / Toujounine)', fee: 100 },
+              ])
+            }
+          >
+            + {lang === 'fr' ? 'Ajouter les zones de Nouakchott' : 'إضافة مناطق نواكشوط الشائعة'}
+          </button>
+        </div>
       </div>
 
       <div className="panel">

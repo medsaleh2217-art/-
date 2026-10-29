@@ -70,6 +70,31 @@ export default function AdminApp() {
     );
   }
 
+  function parseAuthError(err: unknown): string {
+    if (typeof err === 'object' && err !== null && 'code' in err) {
+      const code = String((err as { code: string }).code);
+      if (code === 'auth/unauthorized-domain') {
+        const host = typeof window !== 'undefined' ? window.location.hostname : 'attib-al-asli.vercel.app';
+        return lang === 'fr'
+          ? `Le domaine "${host}" n'est pas encore autorisé dans Firebase. Ajoutez-le dans Firebase Console > Authentication > Settings > Authorized domains.`
+          : `النطاق (${host}) غير مصرّح به بعد في Firebase. يرجى إضافته إلى: Firebase Console > Authentication > Settings > Authorized domains.`;
+      }
+      if (code === 'auth/popup-closed-by-user') {
+        return lang === 'fr' ? 'La fenêtre de connexion a été fermée.' : 'تم إغلاق نافذة تسجيل الدخول قبل اكتمالها.';
+      }
+      if (code === 'auth/popup-blocked') {
+        return lang === 'fr' ? 'Le navigateur a bloqué la fenêtre contextuelle.' : 'المتصفح منع فتح النافذة المنبثقة. يرجى السماح بالنوافذ المنبثقة (Popups).';
+      }
+      if (code === 'auth/operation-not-allowed') {
+        return lang === 'fr' ? 'Cette méthode de connexion n’est pas activée dans Firebase.' : 'طريقة تسجيل الدخول هذه غير مفعلة في Firebase Console.';
+      }
+      if (code === 'auth/invalid-credential' || code === 'auth/user-not-found' || code === 'auth/wrong-password') {
+        return lang === 'fr' ? 'Identifiants incorrects ou utilisateur non inscrit.' : 'بيانات الدخول غير صحيحة، أو لم يتم إنشاء الحساب في Firebase بعد.';
+      }
+    }
+    return t('admin.loginFailed');
+  }
+
   const loginGoogle = async () => {
     if (!auth) return;
     setBusy(true);
@@ -79,7 +104,7 @@ export default function AdminApp() {
       await signInWithPopup(auth, provider);
     } catch (err) {
       console.error(err);
-      setError(t('admin.loginFailed'));
+      setError(parseAuthError(err));
     } finally {
       setBusy(false);
     }
@@ -93,7 +118,7 @@ export default function AdminApp() {
       await signInWithEmailAndPassword(auth!, email.trim(), password);
     } catch (err) {
       console.error(err);
-      setError(t('admin.loginFailed'));
+      setError(parseAuthError(err));
     } finally {
       setBusy(false);
     }
